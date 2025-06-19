@@ -100,7 +100,7 @@ function triggerWebAppAction(actionName) {
     ui.alert('Script Error', errorMessage, ui.ButtonSet.OK); // Notify user of script-side errors
   }
 }
-
+//List Import CALL
 function triggerLeadImport() {
   const url = 'https://script.google.com/macros/s/AKfycbyFjgpRv_Iq48W0kp9ekzVWFPaZYaCNkYHdAcFU9v_IMWZ8vSyZ20e7fszBVvMCflNj/exec'; // Replace with your new Web App URL
 
