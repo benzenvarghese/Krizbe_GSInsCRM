@@ -102,7 +102,7 @@ function triggerWebAppAction(actionName) {
 }
 //    ====  LIST IMPORT CALL
 function triggerLeadImport() {
-  const url = 'https://script.google.com/macros/s/AKfycbyFjgpRv_Iq48W0kp9ekzVWFPaZYaCNkYHdAcFU9v_IMWZ8vSyZ20e7fszBVvMCflNj/exec'; // Replace with your new Web App URL
+  const url = WEB_APP_URL; // Replace with your new Web App URL
 
   const payload = {
     action: "importLeadsFromStaging"
