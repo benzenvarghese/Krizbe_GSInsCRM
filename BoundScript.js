@@ -1,7 +1,7 @@
 // === CONFIG: Web App URL ===
 const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzZfI005n68Yc96yKkFPCRbxmNzTNMUU4qhAd_BbvHY_Wj-qKkceGRaEoI7PZII_5hM/exec';
 
-// ===BUILD MENU ON OPEN  ===
+// ===   BUILD MENU ON OPEN  ===
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu("📣 CRM Actions")
