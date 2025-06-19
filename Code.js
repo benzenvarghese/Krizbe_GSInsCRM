@@ -16,6 +16,8 @@ function doPost(e) {
       notifyMonthlyWorkingLeads();
     } else if (action === "updateRenewalReminderDates") {
       updateRenewalReminderDates();
+    } else if (action === "importLeadsFromStaging") {
+      importLeadsFromStaging();
     } else {
       logMessage("Unknown action received: " + action, true);
     }
@@ -237,4 +239,80 @@ function getNotificationEmail(attribute) {
     }
   }
   throw new Error(`No email found for attribute: ${attribute}`);
+}
+
+// === LEAD IMPORT FUNCTION ===
+function importLeadsFromStaging() {
+  try {
+    logMessage("Started importLeadsFromStaging", true);
+
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const setupSheet = ss.getSheetByName("SetUp");
+    const leadStageSheet = ss.getSheetByName("LeadStage");
+    const workingLeadsSheet = ss.getSheetByName("WorkingLeads");
+
+    const setupData = setupSheet.getRange(2, 3, setupSheet.getLastRow(), 2).getValues(); // Columns C & D
+    const statusCol = getSetupValue("LeadImportStatusColumn");
+    const primaryKeyDestCol = setupData[1][0]; // C3 - e.g., "C"
+    const primaryKeySourceCol = setupData[1][1]; // D3 - e.g., "A"
+    const mappings = setupData.slice(2); // From C4 onwards
+
+    logMessage(`Primary Key Destination Column: ${primaryKeyDestCol}`);
+    logMessage(`Primary Key Source Column: ${primaryKeySourceCol}`);
+    logMessage(`Lead Import Status Column: ${statusCol}`);
+    logMessage(`Column Mappings: ${JSON.stringify(mappings)}`);
+
+    const leadStageData = leadStageSheet.getDataRange().getValues();
+    const workingLeadsData = workingLeadsSheet.getDataRange().getValues();
+
+    const leadStageHeaders = leadStageData[0];
+    let importCount = 0, duplicateCount = 0;
+
+    for (let i = 1; i < leadStageData.length; i++) {
+      const row = leadStageData[i];
+      const primaryValue = row[columnToIndex(primaryKeySourceCol)];
+
+      if (!primaryValue || primaryValue.toString().trim() === '') continue;
+
+      const isDuplicate = workingLeadsData.some(wr => wr[columnToIndex(primaryKeyDestCol)] == primaryValue);
+      const statusCell = leadStageSheet.getRange(i + 1, columnToIndex(statusCol) + 1);
+
+      if (isDuplicate) {
+        statusCell.setValue("Duplicate").setBackground("#FFC7CE");
+        duplicateCount++;
+        continue;
+      }
+
+      const newRow = [];
+      mappings.forEach(([destCol, srcCol]) => {
+        newRow[columnToIndex(destCol)] = row[columnToIndex(srcCol)];
+      });
+
+      workingLeadsSheet.appendRow(newRow);
+      statusCell.setValue("Imported").setBackground("#C6EFCE");
+      importCount++;
+    }
+
+    logMessage(`Lead Import Complete. Imported: ${importCount}, Duplicates: ${duplicateCount}`, true);
+
+  } catch (error) {
+    logMessage("Exception in importLeadsFromStaging: " + error.message, true);
+  }
+}
+
+function getSetupValue(attribute) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const setupSheet = ss.getSheetByName("SetUp");
+  const data = setupSheet.getDataRange().getValues();
+
+  for (let i = 0; i < data.length; i++) {
+    if (data[i][0] === attribute) {
+      return data[i][1];
+    }
+  }
+  throw new Error(`No setup value found for attribute: ${attribute}`);
+}
+
+function columnToIndex(col) {
+  return col.toUpperCase().charCodeAt(0) - 65;
 }
