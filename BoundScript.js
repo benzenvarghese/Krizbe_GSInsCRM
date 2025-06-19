@@ -100,3 +100,21 @@ function triggerWebAppAction(actionName) {
     ui.alert('Script Error', errorMessage, ui.ButtonSet.OK); // Notify user of script-side errors
   }
 }
+
+function triggerLeadImport() {
+  const url = 'https://script.google.com/macros/s/AKfycbyFjgpRv_Iq48W0kp9ekzVWFPaZYaCNkYHdAcFU9v_IMWZ8vSyZ20e7fszBVvMCflNj/exec'; // Replace with your new Web App URL
+
+  const payload = {
+    action: "importLeadsFromStaging"
+  };
+
+  const options = {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  const response = UrlFetchApp.fetch(url, options);
+  Logger.log("Lead Import Triggered: " + response.getContentText());
+}
