@@ -118,3 +118,51 @@ function triggerLeadImport() {
   const response = UrlFetchApp.fetch(url, options);
   Logger.log("Lead Import Triggered: " + response.getContentText());
 }
+
+// === TIMESTAMP AND FUTURE DATE LOGIC ===
+function onEdit(e) {
+  try {
+    const sheet = e.range.getSheet();
+    const editedCell = e.range;
+    const row = editedCell.getRow();
+    const col = editedCell.getColumn();
+
+    const sheetName1 = "WorkingLeads";
+    const colF = 6;
+    const colH = 8;
+    const timestampCol = 9; // Column I
+    const now = new Date();
+
+    if (sheet.getName() === sheetName1 && row !== 1) {
+      const dateOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
+      const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
+      const dayOptions = { weekday: 'short' };
+      const shortDate = now.toLocaleDateString('en-US', dateOptions);
+      const time = now.toLocaleTimeString('en-US', timeOptions);
+      const day = now.toLocaleDateString('en-US', dayOptions);
+      const finalStamp = `${shortDate}, ${time} - ${day}`;
+      sheet.getRange(row, timestampCol).setValue(finalStamp);
+
+      logMessage(`Timestamp updated at row ${row}: ${finalStamp}`);
+
+      if (col === colF) {
+        let value = editedCell.getValue();
+        if (typeof value !== "string") return;
+        value = value.trim();
+
+        const numMonths = parseInt(value);
+        if (!isNaN(numMonths)) {
+          const futureDate = new Date(now.getFullYear(), now.getMonth() + numMonths, 1);
+          const futureOptions = { year: 'numeric', month: 'long' };
+          const formattedDate = futureDate.toLocaleDateString('en-US', futureOptions);
+          sheet.getRange(row, colH).setValue(formattedDate);
+          logMessage(`Future date set at row ${row}, Col H: ${formattedDate}`);
+        } else {
+          SpreadsheetApp.getActive().toast("Couldn't extract number of months");
+        }
+      }
+    }
+  } catch (error) {
+    logMessage("Exception in onEdit: " + error.message, true);
+  }
+}
