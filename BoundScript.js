@@ -146,21 +146,27 @@ function onEdit(e) {
       logMessage(`Timestamp updated at row ${row}: ${finalStamp}`);
 
       if (col === colF) {
-        let value = editedCell.getValue();
-        if (typeof value !== "string") return;
-        value = value.trim();
+		  let value = editedCell.getValue();
+		  logMessage(`Cell F${row} edited with value: ${value}`);
 
-        const numMonths = parseInt(value);
-        if (!isNaN(numMonths)) {
-          const futureDate = new Date(now.getFullYear(), now.getMonth() + numMonths, 1);
-          const futureOptions = { year: 'numeric', month: 'long' };
-          const formattedDate = futureDate.toLocaleDateString('en-US', futureOptions);
-          sheet.getRange(row, colH).setValue(formattedDate);
-          logMessage(`Future date set at row ${row}, Col H: ${formattedDate}`);
-        } else {
-          SpreadsheetApp.getActive().toast("Couldn't extract number of months");
-        }
-      }
+		  if (!value) return;
+
+		  // Extract numeric part from string like "3 - Month", "3months", "3 mo"
+		  const match = value.toString().trim().match(/^(\d+)\s*(?:[-]?\s*(mo|month|months)?)?/i);
+		  const numMonths = match ? parseInt(match[1]) : NaN;
+
+		  if (!isNaN(numMonths) && numMonths >= 0) {
+			const futureDate = new Date(now.getFullYear(), now.getMonth() + numMonths, 1);
+			const futureOptions = { year: 'numeric', month: 'long' };
+			const formattedDate = futureDate.toLocaleDateString('en-US', futureOptions);
+			sheet.getRange(row, colH).setValue(formattedDate);
+			logMessage(`✅ Future date updated in H${row} for ${numMonths} month(s): ${formattedDate}`);
+		  } else {
+			SpreadsheetApp.getActive().toast(`❌ Could not extract month from: "${value}"`);
+			logMessage(`⚠️ Invalid month format at F${row}: "${value}"`);
+		  }
+	  }
+
     }
   } catch (error) {
     logMessage("Exception in onEdit: " + error.message, true);
