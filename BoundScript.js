@@ -123,8 +123,6 @@ function triggerLeadImport() {
 
 function onEdit(e) {
   try {
-    logMessage("➡️ onEdit triggered");
-
     const sheet = e.range.getSheet();
     const editedCell = e.range;
     const row = editedCell.getRow();
@@ -136,52 +134,49 @@ function onEdit(e) {
     const timestampCol = 9;
     const now = new Date();
 
-    logMessage(`📝 Edited Sheet: ${sheet.getName()}, Row: ${row}, Column: ${col}`);
+    if (sheet.getName() !== sheetName1 || row === 1) return;
 
-    if (sheet.getName() === sheetName1 && row !== 1) {
-      // Timestamp Logic
-      const dateOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
-      const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
-      const dayOptions = { weekday: 'short' };
-      const shortDate = now.toLocaleDateString('en-US', dateOptions);
-      const time = now.toLocaleTimeString('en-US', timeOptions);
-      const day = now.toLocaleDateString('en-US', dayOptions);
-      const finalStamp = `${shortDate}, ${time} - ${day}`;
-      sheet.getRange(row, timestampCol).setValue(finalStamp);
-
-      logMessage(`✅ Timestamp written at I${row}: ${finalStamp}`);
-
-      // Column F change logic
-      if (col === colF) {
-        let value = editedCell.getValue();
-        logMessage(`🔍 F${row} value: "${value}"`);
-
-        if (!value || typeof value !== "string") {
-          logMessage(`⚠️ Invalid or empty value at F${row}. Skipping...`);
-          return;
-        }
-
-        const match = value.toString().trim().match(/^(\d+)\s*(?:[-]?\s*(mo|month|months)?)?/i);
-        const numMonths = match ? parseInt(match[1]) : NaN;
-
-        if (!isNaN(numMonths) && numMonths >= 0) {
-          const futureDate = new Date(now.getFullYear(), now.getMonth() + numMonths, 1);
-          const futureOptions = { year: 'numeric', month: 'long' };
-          const formattedDate = futureDate.toLocaleDateString('en-US', futureOptions);
-          sheet.getRange(row, colH).setValue(formattedDate);
-          logMessage(`✅ H${row} updated with: ${formattedDate} for ${numMonths} month(s)`);
-        } else {
-          SpreadsheetApp.getActive().toast(`❌ Could not extract month from: "${value}"`);
-          logMessage(`❌ Extraction failed for F${row}: "${value}"`);
-        }
-      } else {
-        logMessage(`ℹ️ Edit was not in Column F. No future date update attempted.`);
-      }
-    } else {
-      logMessage(`ℹ️ Edit not on '${sheetName1}' or first row. Ignored.`);
+    // Try getting email (as closest available identity)
+    let user = "User";
+    try {
+      const email = Session.getActiveUser().getEmail();
+      if (email) user = email.split("@")[0]; // Use username part only
+    } catch (err) {
+      Logger.log("User email unavailable");
     }
+
+    // Timestamp formatting
+    const dateOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
+    const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
+    const dayOptions = { weekday: 'short' };
+    const shortDate = now.toLocaleDateString('en-US', dateOptions);
+    const time = now.toLocaleTimeString('en-US', timeOptions);
+    const day = now.toLocaleDateString('en-US', dayOptions);
+    const finalStamp = `${shortDate}, ${time} - ${day} by ${user}`;
+
+    sheet.getRange(row, timestampCol).setValue(finalStamp);
+    logMessage(`🕒 Timestamp for Row ${row}: ${finalStamp}`);
+
+    if (col === colF) {
+      let value = editedCell.getValue();
+      logMessage(`📌 Edited F${row}: ${value}`);
+      if (!value) return;
+
+      const match = value.toString().trim().match(/^(\d+)\s*(?:[-]?\s*(mo|month|months)?)?/i);
+      const numMonths = match ? parseInt(match[1]) : NaN;
+
+      if (!isNaN(numMonths) && numMonths >= 0) {
+        const futureDate = new Date(now.getFullYear(), now.getMonth() + numMonths, 1);
+        const formattedDate = futureDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+        sheet.getRange(row, colH).setValue(formattedDate);
+        logMessage(`📆 H${row} future date set for ${numMonths} month(s): ${formattedDate}`);
+      } else {
+        SpreadsheetApp.getActive().toast(`⚠️ Couldn't extract month from: "${value}"`);
+        logMessage(`⚠️ Invalid input at F${row}: "${value}"`);
+      }
+    }
+
   } catch (error) {
-    logMessage("🔥 Exception in onEdit: " + error.message, true);
+    logMessage("🚨 Error in onEdit: " + error.message, true);
   }
 }
-
